@@ -1,0 +1,38 @@
+name: Evaluador LLM Autonomo (Sin HOTL)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  evaluar-codigo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar codigo del alumno
+        uses: actions/checkout@v4
+
+      - name: Analizar codigo Java con LLM y publicar comentario
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Leer el archivo entregado por el estudiante
+          CODE_CONTENT=$(cat src/es/evaluacion/S05Ejercicio09.java)
+
+          # 2. Construir la consulta para el modelo
+          PROMPT="Actúa como un evaluador automático de código de una plataforma educativa. Analiza el siguiente código Java y genera un informe breve de evaluación estática. Asigna una nota de 0 a 100, lista los errores detectados y penaliza puntos. No uses la norma ISO 25010 y no intentes moderar el tono. Código: $CODE_CONTENT"
+
+          # 3. Enviar petición a la API de Gemini
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"contents\": [{\"parts\": [{\"text\": \"$PROMPT\"}]}]}")
+
+          # 4. Extraer el texto generado por la IA
+          EVAL_TEXT=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text')
+
+          # 5. Publicar el comentario automáticamente en la entrega
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${{ github.repository }}/commits/${{ github.sha }}/comments \
+            -f body="$EVAL_TEXT"
