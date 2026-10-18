@@ -30,8 +30,8 @@ jobs:
           
           PAYLOAD=$(jq -n --arg txt "$PROMPT" '{"contents": [{"parts": [{"text": $txt}]}]}')
 
-          # 3. Petición a la API usando el modelo activo gemini-2.5-flash
-          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+          # 3. Petición a la API usando el modelo activo gemini-3.8-flash
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
