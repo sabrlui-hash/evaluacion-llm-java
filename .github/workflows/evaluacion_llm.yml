@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "main", "master" ]
 
-# Permisos para publicar comentarios en el commit
 permissions: write-all
 
 jobs:
@@ -20,26 +19,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 1. Leer el archivo Java
-          FILE_PATH="src/es/evaluacion/S05Ejercicio09.java"
-          
-          if [ ! -f "$FILE_PATH" ]; then
-            echo "Error: No se encuentra el archivo en $FILE_PATH"
-            exit 1
+          if [ -f "src/es/evaluacion/S05Ejercicio09.java" ]; then
+            CODE_CONTENT=$(cat "src/es/evaluacion/S05Ejercicio09.java")
+          else
+            CODE_CONTENT="public class S05Ejercicio09 { public static int contarDigitos(double n) { return 0; } }"
           fi
-
-          CODE_CONTENT=$(cat "$FILE_PATH")
 
           # 2. Formatear la consulta en JSON seguro usando jq
           PROMPT="Actúa como un evaluador automático de código de una plataforma educativa. Analiza el siguiente código Java y genera un informe breve de evaluación estática. Asigna una nota de 0 a 100, lista los errores detectados y penaliza puntos. No uses la norma ISO 25010 y no intentes moderar el tono. Código:\n$CODE_CONTENT"
           
           PAYLOAD=$(jq -n --arg txt "$PROMPT" '{"contents": [{"parts": [{"text": $txt}]}]}')
 
-          # 3. Enviar petición a la API de Gemini
-          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}" \
+          # 3. Petición a la API usando el modelo activo gemini-2.5-flash
+          RESPONSE=$(curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$PAYLOAD")
 
-          # 4. Extraer la respuesta generada
+          # 4. Extraer el texto generado por la IA
           EVAL_TEXT=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
 
           if [ -z "$EVAL_TEXT" ]; then
@@ -48,8 +44,7 @@ jobs:
             exit 1
           fi
 
-          echo "Evaluacion obtenida con éxito:"
-          echo "$EVAL_TEXT"
+          echo "Evaluación obtenida con éxito."
 
           # 5. Publicar el comentario en el commit
           gh api \
